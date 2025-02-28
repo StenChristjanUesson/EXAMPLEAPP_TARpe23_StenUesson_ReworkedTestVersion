@@ -61,7 +61,7 @@ public class TicketController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult<Ticket> PostMovie(Ticket ticket)
+    public ActionResult<Ticket> PostTicket(Ticket ticket)
     {
         var dbTicketMarking = _context.Tickets!.Find(ticket.Id);
         if (dbTicketMarking == null)
@@ -80,30 +80,14 @@ public class TicketController : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult DeleteTicket(int id, string SeatNo, decimal Price)
     {
-        var ticket_id = _context.Tickets!.Find(id);
+        var ticket = _context.Tickets!.Find(id, SeatNo, Price);
 
-        if (ticket_id == null)
+        if (ticket == null)
         {
             return NotFound();
         }
 
-        var ticket_SeatNo = _context.Tickets!.Find(SeatNo);
-
-        if (ticket_SeatNo == null)
-        {
-            return NotFound();
-        }
-
-        var ticket_Price = _context.Tickets!.Find(Price);
-
-        if (ticket_Price == null)
-        {
-            return NotFound();
-        }
-
-        _context.Remove(ticket_id);
-        _context.Remove(ticket_SeatNo);
-        _context.Remove(ticket_Price);
+        _context.Remove(ticket);
         _context.SaveChanges();
 
         return NoContent();
