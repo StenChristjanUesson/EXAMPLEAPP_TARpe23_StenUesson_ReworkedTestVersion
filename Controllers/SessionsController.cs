@@ -9,20 +9,20 @@ namespace ITB2203Application.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SessionController : ControllerBase
+public class SessionsController : ControllerBase
 {
     private readonly DataContext _context;
 
-    public SessionController(DataContext context)
+    public SessionsController(DataContext context)
     {
         _context = context;
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Session>> GetTicket(Session session, string? AuditoriumName = null)
+    public ActionResult<IEnumerable<Session>> GetTicket(DateTime StartTime, string? AuditoriumName = null)
     {
         var query = _context.Sessions!.AsQueryable();
-        var Session_StartTime = _context.Sessions!.Find(session.StartTime);
+        var Session_StartTime = _context.Sessions!.Find(StartTime);
 
         if (AuditoriumName != null)
             query = query.Where(x => x.AuditoriumName != null && x.AuditoriumName.ToUpper().Contains(AuditoriumName.ToUpper()));
@@ -36,14 +36,14 @@ public class SessionController : ControllerBase
     [HttpGet("{id}")]
     public ActionResult<Session> GetSession(int id, string AuditoriumName, DateTime StartTime)
     {
-        var ticket_Objects = _context.Sessions!.Find(id, AuditoriumName, StartTime);
+        var Session_Objects = _context.Sessions!.Find(id, AuditoriumName, StartTime);
 
-        if (ticket_Objects == null)
+        if (Session_Objects == null)
         {
             return NotFound();
         }
 
-        return Ok(ticket_Objects);
+        return Ok(Session_Objects);
     }
 
     [HttpPut("{id}")]
@@ -64,8 +64,8 @@ public class SessionController : ControllerBase
     [HttpPost]
     public ActionResult<Session> PostSession(Session session)
     {
-        var dbTicketMarking = _context.Sessions!.Find(session.Id);
-        if (dbTicketMarking == null)
+        var dbSessionMarking = _context.Sessions!.Find(session.Id);
+        if (dbSessionMarking == null)
         {
             _context.Add(session);
             _context.SaveChanges();

@@ -9,23 +9,23 @@ namespace ITB2203Application.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TicketController : ControllerBase
+public class TicketsController : ControllerBase
 {
     private readonly DataContext _context;
 
-    public TicketController(DataContext context)
+    public TicketsController(DataContext context)
     {
         _context = context;
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Ticket>> GetTicket(Ticket ticket, string? SeatNo = null)
+    public ActionResult<IEnumerable<Ticket>> GetTicket(int? Price = null, string? SeatNo = null)
     {
         var query = _context.Tickets!.AsQueryable();
         if (SeatNo != null)
             query = query.Where(x => x.SeatNo != null && x.SeatNo.ToUpper().Contains(SeatNo.ToUpper()));
 
-        var ticket_Price = _context.Tickets!.Find(ticket.Price);
+        var ticket_Price = _context.Tickets!.Find(Price);
         if (ticket_Price != null)
             query = query.Where(x => x.Price != null && x.Price.Equals(ticket_Price));
 

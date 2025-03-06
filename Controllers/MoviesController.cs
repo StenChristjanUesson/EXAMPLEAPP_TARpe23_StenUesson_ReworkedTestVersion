@@ -7,11 +7,11 @@ namespace ITB2203Application.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MovieController : ControllerBase
+public class MoviesController : ControllerBase
 {
     private readonly DataContext _context;
 
-    public MovieController(DataContext context)
+    public MoviesController(DataContext context)
     {
         _context = context;
     }
