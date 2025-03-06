@@ -1,4 +1,5 @@
 ﻿using ITB2203Application.Model;
+using ITB2203Application.Model.FilmModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -19,24 +20,29 @@ public class SessionsController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Session>> GetTicket(DateTime StartTime, string? AuditoriumName = null)
+    public ActionResult<IEnumerable<Session>> GetTicket(DateTime? periodStart = null, DateTime? periodEnd = null, string? AuditoriumName = null)
     {
         var query = _context.Sessions!.AsQueryable();
-        var Session_StartTime = _context.Sessions!.Find(StartTime);
+        var Session_periodStart = _context.Sessions!.Find(periodStart);
+        var Session_periodEnd = _context.Sessions!.Find(periodEnd);
+
 
         if (AuditoriumName != null)
             query = query.Where(x => x.AuditoriumName != null && x.AuditoriumName.ToUpper().Contains(AuditoriumName.ToUpper()));
 
-        if (Session_StartTime != null)
-            query = query.Where(x => x.StartTime != null && x.StartTime.Equals(Session_StartTime));
+        if (Session_periodStart != null)
+            query = query.Where(x => x.StartTime != null && x.StartTime.Equals(Session_periodStart));
+        
+        if (Session_periodEnd != null)
+            query = query.Where(x => x.StartTime != null && x.StartTime.Equals(Session_periodEnd));
 
         return query.ToList();
     }
 
     [HttpGet("{id}")]
-    public ActionResult<Session> GetSession(int id, string AuditoriumName, DateTime StartTime)
+    public ActionResult<Session> GetSession(int id, string AuditoriumName, DateTime? periodStart = null, DateTime? periodEnd = null)
     {
-        var Session_Objects = _context.Sessions!.Find(id, AuditoriumName, StartTime);
+        var Session_Objects = _context.Sessions!.Find(id, AuditoriumName, periodStart, periodEnd);
 
         if (Session_Objects == null)
         {
@@ -62,11 +68,28 @@ public class SessionsController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult<Session> PostSession(Session session)
+    public ActionResult<Session> PostSession(Session session, DateTime? periodEnd = null, DateTime? periodStart = null)
     {
-        var dbSessionMarking = _context.Sessions!.Find(session.Id);
-        if (dbSessionMarking == null)
+        if (periodEnd != null)
         {
+            return BadRequest("404 (Not Found)");
+        }
+
+        var dbSession = _context.Sessions!.Find(session.Id);
+        if (dbSession == null)
+        {
+            var dbSessionStart = _context.Sessions.FirstOrDefault(a => a.StartTime >= periodStart);
+            if (dbSessionStart != null)
+            {
+                return BadRequest("404 (Not Found)");
+            }
+
+            var dbSessionEnd = _context.Sessions.FirstOrDefault(a => a.StartTime <= periodEnd);
+            if (dbSessionEnd != null)
+            {
+                return BadRequest("404 (Not Found)");
+            }
+
             _context.Add(session);
             _context.SaveChanges();
 

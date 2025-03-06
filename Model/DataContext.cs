@@ -1,3 +1,4 @@
+using ITB2203Application.Model.FilmModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace ITB2203Application.Model;

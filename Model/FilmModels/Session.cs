@@ -1,4 +1,4 @@
-﻿namespace ITB2203Application.Model
+﻿namespace ITB2203Application.Model.FilmModels
 {
     public class Session
     {

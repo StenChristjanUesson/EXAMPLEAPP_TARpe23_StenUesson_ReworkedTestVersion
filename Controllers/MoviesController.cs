@@ -1,4 +1,5 @@
 ﻿using ITB2203Application.Model;
+using ITB2203Application.Model.FilmModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using static System.Net.Mime.MediaTypeNames;
