@@ -23,8 +23,8 @@ public class SessionsController : ControllerBase
     public ActionResult<IEnumerable<Session>> GetTicket(DateTime? periodStart = null, DateTime? periodEnd = null, string? AuditoriumName = null)
     {
         var query = _context.Sessions!.AsQueryable();
-        var Session_periodStart = _context.Sessions!.Find(periodStart);
-        var Session_periodEnd = _context.Sessions!.Find(periodEnd);
+        var Session_periodStart = periodStart;
+        var Session_periodEnd = periodEnd;
 
 
         if (AuditoriumName != null)
