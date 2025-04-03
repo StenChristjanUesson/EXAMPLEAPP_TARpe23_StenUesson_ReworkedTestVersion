@@ -1,93 +1,175 @@
 ﻿using ITB2203Application.Model;
-using ITB2203Application.Model.FilmModels;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 using System.Net.Sockets;
-using static System.Net.Mime.MediaTypeNames;
 
-namespace ITB2203Application.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class SessionsController : ControllerBase
+namespace ITB2203Application.Controllers
 {
-    private readonly DataContext _context;
-
-    public SessionsController(DataContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class SessionsController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly DataContext _context;
 
-    [HttpGet]
-    public ActionResult<IEnumerable<Session>> GetTicket(DateTime? periodStart = null, DateTime? periodEnd = null, string? AuditoriumName = null)
-    {
-        var query = _context.Sessions!.AsQueryable();
-        var Session_periodStart = periodStart;
-        var Session_periodEnd = periodEnd;
-
-
-        if (AuditoriumName != null)
-            query = query.Where(x => x.AuditoriumName != null && x.AuditoriumName.ToUpper().Contains(AuditoriumName.ToUpper()));
-
-        if (Session_periodStart != null)
-            query = query.Where(x => x.StartTime != null && x.StartTime.Equals(Session_periodStart));
-        
-        if (Session_periodEnd != null)
-            query = query.Where(x => x.StartTime != null && x.StartTime.Equals(Session_periodEnd));
-
-        return query.ToList();
-    }
-
-    [HttpGet("{id}")]
-    public ActionResult<Session> GetSession(int id, string AuditoriumName, DateTime? periodStart = null, DateTime? periodEnd = null)
-    {
-        var Session_Objects = _context.Sessions!.Find(id, AuditoriumName, periodStart, periodEnd);
-
-        if (Session_Objects == null)
+        public SessionsController(DataContext context)
         {
-            return NotFound();
+            _context = context;
         }
 
-        return Ok(Session_Objects);
-    }
-
-    [HttpPut("{id}")]
-    public IActionResult PutSession(int id, Session session)
-    {
-        var dbSession = _context.Tickets!.AsNoTracking().FirstOrDefault(x => x.Id == session.Id);
-        if (id != session.Id || dbSession == null)
+        [HttpGet("{id}")]
+        public ActionResult<Session> GetSession(int id)
         {
-            return NotFound();
-        }
+            var session = _context.Sessions!.Find(id);
 
-        _context.Update(session);
-        _context.SaveChanges();
-
-        return NoContent();
-    }
-
-    [HttpPost]
-    public ActionResult<Session> PostSession(Session session, DateTime? periodEnd = null, DateTime? periodStart = null)
-    {
-        if (periodEnd != null)
-        {
-            return BadRequest("404 (Not Found)");
-        }
-
-        var dbSession = _context.Sessions!.Find(session.Id);
-        if (dbSession == null)
-        {
-            var dbSessionStart = _context.Sessions.FirstOrDefault(a => a.StartTime >= periodStart);
-            if (dbSessionStart != null)
+            if (session == null)
             {
-                return BadRequest("404 (Not Found)");
+                return NotFound();
             }
 
-            var dbSessionEnd = _context.Sessions.FirstOrDefault(a => a.StartTime <= periodEnd);
-            if (dbSessionEnd != null)
+            return Ok(session);
+        }
+
+        [HttpGet]
+        public ActionResult<IEnumerable<Session>> GetSessions(DateTime? periodStart, DateTime? periodEnd, string? movieTitle)
+        {
+            var query = _context.Sessions!.AsQueryable().ToList();
+
+            if (periodStart != null && periodEnd != null)
             {
-                return BadRequest("404 (Not Found)");
+                List<Session> validTimeSessions = new List<Session>();
+                foreach (Session session in query)
+                {
+                    int dateComparisonStart = DateTime.Compare((DateTime)periodStart, session.StartTime);
+                    int dateComparisonEnd = DateTime.Compare((DateTime)periodEnd, session.StartTime);
+                    if (dateComparisonStart <= 0 && dateComparisonEnd >= 0)
+                    {
+                        validTimeSessions.Add(session);
+                    }
+                }
+                return validTimeSessions;
+            }
+            else if (periodStart != null)
+            {
+                List<Session> validTimeSessions = new List<Session>();
+                foreach (Session session in query)
+                {
+                    int dateComparison = DateTime.Compare((DateTime)periodStart, session.StartTime);
+                    if (dateComparison <= 0)
+                    {
+                        validTimeSessions.Add(session);
+                    }
+                }
+                return validTimeSessions;
+            }
+            else if (periodEnd != null)
+            {
+                List<Session> validTimeSessions = new List<Session>();
+                foreach (Session session in query)
+                {
+                    int dateComparisonEnd = DateTime.Compare((DateTime)periodEnd, session.StartTime);
+                    if (dateComparisonEnd >= 0)
+                    {
+                        validTimeSessions.Add(session);
+                    }
+                }
+                return validTimeSessions;
+            }
+            if (movieTitle != null)
+            {
+                List<Session> validMovieTitleSessions = new List<Session>();
+                foreach (Session session in query)
+                {
+                    Movie? sessionMovie = _context.Movies!.AsNoTracking().FirstOrDefault(x => x.Id == session.MovieId);
+                    if (sessionMovie!.Title == movieTitle)
+                    {
+                        validMovieTitleSessions.Add(session);
+                    }
+                }
+                return validMovieTitleSessions;
+            }
+            else
+            {
+                return query;
+            }
+        }
+
+        [HttpGet]
+        [Route("{id}/tickets")]
+        public ActionResult<IEnumerable<Ticket>> GetSessionTickets(int id)
+        {
+            var session = _context.Sessions!.Find(id);
+
+            if (session == null)
+            {
+                return NotFound();
+            }
+
+            List<Ticket>? sessionTickets = _context.Tickets!.AsNoTracking().Where(x => x.SessionId == session.Id).ToList();
+
+            if (sessionTickets == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(sessionTickets);
+        }
+
+
+        [HttpPut("{id}")]
+        public IActionResult PutSession(int id, Session session)
+        {
+            var dbSession = _context.Sessions!.AsNoTracking().FirstOrDefault(x => x.Id == session.Id);
+            if (id != session.Id)
+            {
+                return BadRequest();
+            }
+            if (dbSession == null)
+            {
+                return NotFound();
+            }
+
+            DateTime currentTime = DateTime.Now;
+            int dateComparison = DateTime.Compare(session.StartTime, currentTime);
+
+            if (dateComparison <= 0)
+            {
+                return BadRequest();
+            }
+
+            Movie? sessionMovie = _context.Movies!.AsNoTracking().FirstOrDefault(x => x.Id == session.MovieId);
+            if (sessionMovie == null)
+            {
+                return BadRequest();
+            }
+
+            _context.Update(session);
+            _context.SaveChanges();
+
+            return NoContent();
+        }
+
+        [HttpPost]
+        public ActionResult<Session> PostSession(Session session)
+        {
+            if (_context.Sessions!.Any())
+            {
+                int maxSessionId = _context.Sessions!.Max(x => x.Id);
+                session.Id = maxSessionId + 1;
+            }
+
+            DateTime currentTime = DateTime.Now;
+            int dateComparison = DateTime.Compare(session.StartTime, currentTime);
+
+            if (dateComparison <= 0)
+            {
+                return BadRequest();
+            }
+
+            Movie? sessionMovie = _context.Movies!.AsNoTracking().FirstOrDefault(x => x.Id == session.MovieId);
+            if (sessionMovie == null)
+            {
+                return BadRequest();
             }
 
             _context.Add(session);
@@ -95,25 +177,20 @@ public class SessionsController : ControllerBase
 
             return CreatedAtAction(nameof(GetSession), new { Id = session.Id }, session);
         }
-        else
+
+        [HttpDelete("{id}")]
+        public IActionResult DeleteSession(int id)
         {
-            return Conflict();
+            var session = _context.Sessions!.Find(id);
+            if (session == null)
+            {
+                return NotFound();
+            }
+
+            _context.Remove(session);
+            _context.SaveChanges();
+
+            return Ok();
         }
-    }
-
-    [HttpDelete("{id}")]
-    public IActionResult DeleteSession(int id, string AuditoriumName, DateTime StartTime)
-    {
-        var session = _context.Sessions!.Find(id, AuditoriumName, StartTime);
-
-        if (session == null)
-        {
-            return NotFound();
-        }
-
-        _context.Remove(session);
-        _context.SaveChanges();
-
-        return NoContent();
     }
 }

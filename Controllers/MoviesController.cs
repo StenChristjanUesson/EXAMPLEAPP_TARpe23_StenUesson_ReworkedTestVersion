@@ -1,90 +1,90 @@
 ﻿using ITB2203Application.Model;
-using ITB2203Application.Model.FilmModels;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using static System.Net.Mime.MediaTypeNames;
+using Microsoft.Extensions.Logging;
 
-namespace ITB2203Application.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class MoviesController : ControllerBase
+namespace ITB2203Application.Controllers
 {
-    private readonly DataContext _context;
-
-    public MoviesController(DataContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class MoviesController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly DataContext _context;
 
-    [HttpGet]
-    public ActionResult<IEnumerable<Movie>> GetMovie(string? name = null)
-    {
-        var query = _context.Movies!.AsQueryable();
-
-        if (name != null)
-            query = query.Where(x => x.Title != null && x.Title.ToUpper().Contains(name.ToUpper()));
-
-        return query.ToList();
-    }
-
-    [HttpGet("{id}")]
-    public ActionResult<Movie> GetMovie(int id)
-    {
-        var movie = _context.Movies!.Find(id);
-
-        if (movie == null)
+        public MoviesController(DataContext context)
         {
-            return NotFound();
+            _context = context;
         }
 
-        return Ok(movie);
-    }
-
-    [HttpPut("{id}")]
-    public IActionResult PutMovie(int id, Movie movie)
-    {
-        var dbMovie = _context.Movies!.AsNoTracking().FirstOrDefault(x => x.Id == movie.Id);
-        if (id != movie.Id || dbMovie == null)
+        [HttpGet("{id}")]
+        public ActionResult<Movie> GetMovie(int id)
         {
-            return NotFound();
+            var movie = _context.Movies!.Find(id);
+
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(movie);
         }
 
-        _context.Update(movie);
-        _context.SaveChanges();
-
-        return NoContent();
-    }
-
-    [HttpPost]
-    public ActionResult<Movie> PostMovie(Movie movie)
-    {
-        var dbMovieWatching = _context.Movies!.Find(movie.Id);
-        if (dbMovieWatching == null)
+        [HttpGet]
+        public ActionResult<IEnumerable<Movie>> GetMovies()
         {
+            var query = _context.Movies!.AsQueryable().ToList();
+
+            return query;
+        }
+
+        [HttpPut("{id}")]
+        public IActionResult PutMovie(int id, Movie movie)
+        {
+            var dbMovie = _context.Movies!.AsNoTracking().FirstOrDefault(x => x.Id == movie.Id);
+            if (id != movie.Id)
+            {
+                return BadRequest();
+            }
+            if (dbMovie == null)
+            {
+                return NotFound();
+            }
+
+            _context.Update(movie);
+            _context.SaveChanges();
+
+            return NoContent();
+        }
+
+        [HttpPost]
+        public ActionResult<Movie> PostMovie(Movie movie)
+        {
+            if (_context.Movies!.Any())
+            {
+                int maxMovieId = _context.Movies!.Max(x => x.Id);
+                movie.Id = maxMovieId + 1;
+            }
+
             _context.Add(movie);
             _context.SaveChanges();
 
             return CreatedAtAction(nameof(GetMovie), new { Id = movie.Id }, movie);
         }
-        else
+
+        [HttpDelete("{id}")]
+        public IActionResult DeleteMovie(int id)
         {
-            return Conflict();
+            var movie = _context.Movies!.Find(id);
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            _context.Remove(movie);
+            _context.SaveChanges();
+
+            return Ok();
         }
-    }
-
-    [HttpDelete("{id}")]
-    public IActionResult DeleteMovie(int id)
-    {
-        var movie = _context.Movies!.Find(id);
-        if (movie == null)
-        {
-            return NotFound();
-        }
-
-        _context.Remove(movie);
-        _context.SaveChanges();
-
-        return NoContent();
     }
 }

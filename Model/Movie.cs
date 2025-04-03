@@ -1,4 +1,4 @@
-﻿namespace ITB2203Application.Model.FilmModels
+﻿namespace ITB2203Application.Model
 {
     public class Movie
     {
